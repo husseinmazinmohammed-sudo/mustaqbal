@@ -29,15 +29,23 @@ export interface EducationalModule {
   downloadableTitle: string;
 }
 
+export interface GuideSpecTable {
+  title: string;
+  headers: string[];
+  rows: string[][];
+}
+
 export interface PocketGuide {
   id: string;
   pillar: PillarId;
   title: string;
+  englishTitle: string;
   arabicCode: string;
   pagesCount: number;
   updatedDate: string;
   description: string;
   keyTakeaways: string[];
+  specTable: GuideSpecTable;
   protocolSteps: {
     stepNumber: number;
     title: string;
@@ -61,6 +69,8 @@ export interface ConsultationMessage {
 export interface BookedConsultation {
   id: string;
   visitorName: string;
+  visitorEmail?: string;
+  visitorPhone?: string;
   hospitalDepartment: string;
   topic: string;
   pillar: PillarId;
@@ -69,6 +79,9 @@ export interface BookedConsultation {
   urgency: 'routine' | 'urgent' | 'critical';
   notes: string;
   status: 'confirmed' | 'pending' | 'completed';
+  emailNotificationSent?: boolean;
+  emailSentAt?: string;
+  reminderActive?: boolean;
 }
 
 export interface GreenHospitalAudit {
@@ -77,4 +90,38 @@ export interface GreenHospitalAudit {
   waterScore: number;
   procurementScore: number;
   buildingScore: number;
+}
+
+export type AppNotificationCategory =
+  | 'consultation_reminder'
+  | 'profile_task'
+  | 'guide_release'
+  | 'system_update';
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  message: string;
+  category: AppNotificationCategory;
+  timestamp: string;
+  isRead: boolean;
+  priority: 'normal' | 'high' | 'urgent';
+  relatedTab?: AppTab;
+  relatedBookingId?: string;
+  relatedTaskId?: string;
+  relatedGuideId?: string;
+  actionLabel?: string;
+}
+
+export interface ProfileTask {
+  id: string;
+  title: string;
+  description: string;
+  category: 'consultation_prep' | 'safety_audit' | 'badge_completion' | 'guide_review';
+  dueDate: string;
+  priority: 'routine' | 'high' | 'critical';
+  completed: boolean;
+  pillar: PillarId;
+  linkedTab?: AppTab;
+  linkedGuideId?: string;
 }

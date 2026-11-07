@@ -1,32 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Send, 
   Calculator, 
   Calendar, 
   ShieldCheck, 
-  AlertTriangle, 
   CheckCircle, 
-  Clock, 
   Sparkles,
   Zap,
   Radiation,
   Leaf,
-  Stethoscope,
-  Activity,
-  FileCheck
+  FileCheck,
+  Mail,
+  MailCheck
 } from 'lucide-react';
 import { PREDEFINED_ADVISORIES, getSmartAdvisoryResponse } from '../../data/advisoryKnowledge';
 import { ConsultationMessage, BookedConsultation, PillarId } from '../../types';
+import {
+  TARGET_NOTIFICATION_EMAIL,
+  sendAutomaticConsultationEmail
+} from '../../services/googleWorkspaceAuth';
 
 interface ConsultationTabProps {
   initialCalculator?: 'radiation' | 'electrical' | 'green' | null;
   onBookConsultation: (consultation: BookedConsultation) => void;
+  onRequestEmailNotification: (consultation: BookedConsultation) => void;
   bookedConsultations: BookedConsultation[];
 }
 
 export const ConsultationTab: React.FC<ConsultationTabProps> = ({
   initialCalculator = null,
   onBookConsultation,
+  onRequestEmailNotification,
   bookedConsultations
 }) => {
   // Chat Advisor State
@@ -34,10 +38,10 @@ export const ConsultationTab: React.FC<ConsultationTabProps> = ({
     {
       id: 'welcome-msg',
       sender: 'specialist',
-      text: 'أهلاً بك في منصة الاستشارات الهندسية والسريرية المباشرة لسطح المكتب. يمكنك طرح أي استفسار يخص معايير الوقاية الإشعاعية ALARA، تيارات التسريب الكهربائي وفق IEC 60601-1، إدارة الصيانة الوقائية للأجهزة الطبية، أو متطلبات التحول للمستشفيات الخضراء.',
+      text: 'أهلاً بك في منصة الاستشارات الهندسية والسريرية المباشرة — جامعة المستقبل (كلية التقنيات الهندسية - قسم هندسة تقنيات الأجهزة الطبية). يمكنك طرح أي استفسار يخص معايير الوقاية الإشعاعية ALARA، تيارات التسريب الكهربائي وفق IEC 60601-1، إدارة الصيانة الوقائية، أو متطلبات المستشفيات الخضراء.',
       timestamp: 'الآن',
-      specialistRole: 'استشاري السلامة وهندسة الرعاية الصحية',
-      tags: ['IEC 60601', 'ICRP 103', 'GGHH', 'NFPA 99']
+      specialistRole: 'استشاري السلامة وهندسة تقنيات الأجهزة الطبية',
+      tags: ['IEC 60601-1', 'ICRP 103', 'WHO GGHH', 'NFPA 99']
     }
   ]);
   const [inputQuery, setInputQuery] = useState('');
@@ -45,13 +49,20 @@ export const ConsultationTab: React.FC<ConsultationTabProps> = ({
 
   // Active Tool in Second Column: Calculators vs Booking
   const [activeSideTool, setActiveSideTool] = useState<'calculators' | 'booking'>(
-    initialCalculator ? 'calculators' : 'calculators'
+    initialCalculator ? 'calculators' : 'booking'
   );
 
   // Calculator State
   const [activeCalc, setActiveCalc] = useState<'radiation' | 'electrical' | 'green'>(
     initialCalculator || 'radiation'
   );
+
+  useEffect(() => {
+    if (initialCalculator) {
+      setActiveSideTool('calculators');
+      setActiveCalc(initialCalculator);
+    }
+  }, [initialCalculator]);
 
   // Radiation Calc inputs
   const [initialDose, setInitialDose] = useState<number>(100); // µSv/h at 1 meter
@@ -68,17 +79,18 @@ export const ConsultationTab: React.FC<ConsultationTabProps> = ({
   const [wasteScore, setWasteScore] = useState<number>(70);
   const [waterScore, setWaterScore] = useState<number>(65);
   const [procurementScore, setProcurementScore] = useState<number>(80);
-  const [buildingScore, setBuildingScore] = useState<number>(75);
+  const [buildingScore] = useState<number>(75);
 
   // Booking Form State
   const [bookName, setBookName] = useState('');
+  const [bookVisitorEmail, setBookVisitorEmail] = useState('');
+  const [bookPhone, setBookPhone] = useState('');
   const [bookDept, setBookDept] = useState('قسم الأشعة التشخيصية والقسطرة');
   const [bookPillar, setBookPillar] = useState<PillarId>('radiation');
   const [bookUrgency, setBookUrgency] = useState<'routine' | 'urgent' | 'critical'>('routine');
-  const [bookDate, setBookDate] = useState('2026-11-10');
+  const [bookDate, setBookDate] = useState('2026-11-12');
   const [bookTime, setBookTime] = useState('10:00 صباحاً');
   const [bookNotes, setBookNotes] = useState('');
-  const [bookingSuccess, setBookingSuccess] = useState(false);
 
   // Send Advisor Query
   const handleSendQuery = (textToSend?: string) => {
@@ -103,7 +115,7 @@ export const ConsultationTab: React.FC<ConsultationTabProps> = ({
         sender: 'specialist',
         text: response.reply,
         timestamp: 'الآن',
-        specialistRole: 'استشاري الهندسة الإكلينيكية والسلامة المهنية',
+        specialistRole: 'استشاري هندسة تقنيات الأجهزة الطبية والسلامة المهنية',
         recommendations: response.recommendations,
         tags: [response.referenceStandard]
       };
@@ -137,48 +149,84 @@ export const ConsultationTab: React.FC<ConsultationTabProps> = ({
   };
   const greenRating = getGreenRating(overallGreenScore);
 
-  // Booking Submit
-  const handleBookingSubmit = (e: React.FormEvent) => {
+  const [lastBookedReceipt, setLastBookedReceipt] = useState<BookedConsultation | null>(null);
+  const [isAutoSending, setIsAutoSending] = useState(false);
+
+  // Booking Submit -> Automatically sends notification to hassinmazin301@gmail.com with ZERO login
+  const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bookName.trim()) return;
 
+    setIsAutoSending(true);
+    const nowTime = new Date().toLocaleTimeString('ar-IQ', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
     const newBooking: BookedConsultation = {
-      id: `TKT-${Math.floor(100000 + Math.random() * 900000)}`,
+      id: `AMU-${Math.floor(100000 + Math.random() * 900000)}`,
       visitorName: bookName,
+      visitorEmail: bookVisitorEmail.trim() || undefined,
+      visitorPhone: bookPhone.trim() || undefined,
       hospitalDepartment: bookDept,
-      topic: bookPillar === 'radiation' ? 'استشارة السلامة الإشعاعية والتدريع' : bookPillar === 'electrical' ? 'استشارة السلامة الكهربائية ونظام IPS' : bookPillar === 'green_hospital' ? 'استشارة المستشفيات الخضراء وإدارة النفايات' : 'استشارة هندسة الأجهزة الطبية وPPM',
+      topic:
+        bookPillar === 'radiation'
+          ? 'استشارة السلامة الإشعاعية والتدريع'
+          : bookPillar === 'electrical'
+          ? 'استشارة السلامة الكهربائية ونظام IPS'
+          : bookPillar === 'green_hospital'
+          ? 'استشارة المستشفيات الخضراء وإدارة النفايات'
+          : 'استشارة هندسة الأجهزة الطبية وPPM',
       pillar: bookPillar,
       date: bookDate,
       timeSlot: bookTime,
       urgency: bookUrgency,
       notes: bookNotes,
-      status: 'confirmed'
+      status: 'confirmed',
+      emailNotificationSent: true,
+      emailSentAt: nowTime,
+      reminderActive: true
     };
 
+    await sendAutomaticConsultationEmail(newBooking);
     onBookConsultation(newBooking);
-    setBookingSuccess(true);
-    setTimeout(() => {
-      setBookingSuccess(false);
-      setBookName('');
-      setBookNotes('');
-    }, 4000);
+    setLastBookedReceipt(newBooking);
+    setIsAutoSending(false);
+    setBookName('');
+    setBookVisitorEmail('');
+    setBookPhone('');
+    setBookNotes('');
   };
 
   return (
     <div className="space-y-6 text-slate-700" dir="rtl">
       {/* Header */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-gradient-to-l from-teal-50/90 via-white to-sky-50/80 border border-teal-200/80 rounded-3xl p-6 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
+          <div className="text-xs font-medium text-teal-700 mb-1">
+            جامعة المستقبل — كلية التقنيات الهندسية — قسم هندسة تقنيات الأجهزة الطبية
+          </div>
           <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-            <span>مركز الاستشارات الهندسية والحاسبات السريرية</span>
+            <span>مركز الاستشارات التخصصية والحاسبات الهندسية</span>
           </h1>
-          <p className="text-xs font-light text-slate-500 mt-1">
-            إجابات فورية مدعومة بالمعايير، حاسبات أمان دقيقة، وحجز جلسات استشارية مع مهندسي الأجهزة الطبية
+          <p className="text-xs font-light text-slate-600 mt-1">
+            حجز مباشر للزوار بدون تسجيل دخول — يرسل النظام إشعاراً تلقائياً فور الحجز إلى ({TARGET_NOTIFICATION_EMAIL})
           </p>
         </div>
 
         {/* Side Tool Switcher */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
+        <div className="flex items-center gap-1.5 p-1 bg-white/90 border border-teal-200/70 rounded-xl shrink-0">
+          <button
+            onClick={() => setActiveSideTool('booking')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition-all cursor-pointer ${
+              activeSideTool === 'booking'
+                ? 'bg-teal-700 text-white font-semibold shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900 font-light'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>حجز استشارة فورية</span>
+          </button>
           <button
             onClick={() => setActiveSideTool('calculators')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition-all cursor-pointer ${
@@ -187,38 +235,27 @@ export const ConsultationTab: React.FC<ConsultationTabProps> = ({
                 : 'text-slate-600 hover:text-slate-900 font-light'
             }`}
           >
-            <Calculator className="w-3.5 h-3.5 text-teal-600" />
-            <span>الحاسبات والمدققات</span>
-          </button>
-          <button
-            onClick={() => setActiveSideTool('booking')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition-all cursor-pointer ${
-              activeSideTool === 'booking'
-                ? 'bg-white text-teal-900 font-semibold shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900 font-light'
-            }`}
-          >
-            <Calendar className="w-3.5 h-3.5 text-purple-600" />
-            <span>حجز استشارة تخصصية</span>
+            <Calculator className="w-3.5 h-3.5 text-sky-700" />
+            <span>الحاسبات الهندسية</span>
           </button>
         </div>
       </div>
 
-      {/* Modern Multi-Column Grid: Left Column = Chat Advisor (7 cols) | Right Column = Calculators/Booking (5 cols) */}
+      {/* Modern Multi-Column Grid: Left Column = Chat Advisor (7 cols) | Right Column = Booking / Calculators (5 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column (7 cols): Smart Chat Advisor */}
         <div className="lg:col-span-7 bg-white border border-slate-200/80 rounded-3xl p-6 shadow-2xs space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center">
                 <Sparkles className="w-4 h-4" />
               </div>
               <div>
                 <h2 className="text-sm font-semibold text-slate-900">المستشار الهندسي والسريري الفوري</h2>
-                <span className="text-[11px] text-slate-400 font-light">معتمد وفق المعايير العالمية</span>
+                <span className="text-[11px] text-slate-400 font-light">إجابات موثقة بمعايير ICRP وIEC 60601-1</span>
               </div>
             </div>
-            <span className="text-[11px] font-mono bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full border border-teal-200/50">
+            <span className="text-[11px] font-mono bg-teal-50 text-teal-800 px-2.5 py-0.5 rounded-full border border-teal-200/60">
               متصل 24/7
             </span>
           </div>
@@ -242,7 +279,7 @@ export const ConsultationTab: React.FC<ConsultationTabProps> = ({
           </div>
 
           {/* Messages Feed */}
-          <div className="bg-slate-50/60 border border-slate-200/60 rounded-2xl p-4 min-h-[380px] max-h-[500px] overflow-y-auto space-y-3.5 text-right">
+          <div className="bg-slate-50/60 border border-slate-200/60 rounded-2xl p-4 min-h-[380px] max-h-[480px] overflow-y-auto space-y-3.5 text-right">
             {messages.map((msg) => (
               <div
                 key={msg.id}
@@ -266,7 +303,6 @@ export const ConsultationTab: React.FC<ConsultationTabProps> = ({
                 >
                   <p>{msg.text}</p>
 
-                  {/* Bullet recommendations */}
                   {msg.recommendations && (
                     <div className="mt-3 pt-2.5 border-t border-slate-100 space-y-1.5">
                       <strong className="text-[11px] text-slate-500 block font-medium">
@@ -283,7 +319,6 @@ export const ConsultationTab: React.FC<ConsultationTabProps> = ({
                     </div>
                   )}
 
-                  {/* Standards Reference */}
                   {msg.tags && msg.tags.length > 0 && (
                     <div className="mt-2 text-[10px] text-slate-400 font-mono flex items-center gap-1">
                       <span>المرجع:</span>
@@ -323,8 +358,221 @@ export const ConsultationTab: React.FC<ConsultationTabProps> = ({
           </div>
         </div>
 
-        {/* Right Column (5 cols): Calculators or Booking Form */}
+        {/* Right Column (5 cols): Booking with Automatic Zero-Login Email Notification OR Calculators */}
         <div className="lg:col-span-5 space-y-4">
+          {activeSideTool === 'booking' && (
+            <div className="bg-white border border-teal-200/80 rounded-3xl p-6 shadow-2xs space-y-4">
+              <div className="border-b border-slate-100 pb-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-teal-700" />
+                    <span>حجز استشارة تخصصية (بدون تسجيل دخول)</span>
+                  </h3>
+                  <span className="text-[10px] font-medium bg-teal-50 text-teal-800 px-2.5 py-0.5 rounded-full border border-teal-200">
+                    إشعار تلقائي مباشر
+                  </span>
+                </div>
+                <p className="text-xs font-light text-slate-500 mt-1">
+                  يرسل النظام إشعار الحجز تلقائياً وفوراً إلى البريد الرسمي: <strong className="font-mono text-teal-800" dir="ltr">{TARGET_NOTIFICATION_EMAIL}</strong>
+                </p>
+              </div>
+
+              {/* Zero-Login Automatic Notification Info Banner */}
+              <div className="bg-teal-50/60 border border-teal-200/80 rounded-2xl p-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-xs">
+                  <MailCheck className="w-4 h-4 text-teal-700 shrink-0" />
+                  <span className="font-light text-teal-900">
+                    متاح للزوار مباشرة بدون تسجيل دخول — يتم إرسال الإشعار تلقائياً عند تأكيد الحجز.
+                  </span>
+                </div>
+              </div>
+
+              {/* Instant Receipt Banner when a visitor submits a booking */}
+              {lastBookedReceipt && (
+                <div className="bg-emerald-50/90 border border-emerald-300 rounded-2xl p-3.5 space-y-1.5 text-xs text-emerald-950">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold flex items-center gap-1.5 text-emerald-900">
+                      <CheckCircle className="w-4 h-4 text-emerald-600" />
+                      <span>تم تأكيد الحجز (#{lastBookedReceipt.id}) وإرسال الإشعار البريدي!</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setLastBookedReceipt(null)}
+                      className="text-[11px] text-emerald-700 hover:underline cursor-pointer"
+                    >
+                      إخفاء
+                    </button>
+                  </div>
+                  <p className="text-[11px] font-light text-emerald-800 leading-relaxed">
+                    تم إرسال إشعار حجز الاستشارة تلقائياً إلى البريد الإلكتروني <strong className="font-mono">{TARGET_NOTIFICATION_EMAIL}</strong> وإضافة تذكير بالموعد في قسم البروفايل.
+                  </p>
+                </div>
+              )}
+
+              <form onSubmit={handleBookingSubmit} className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-700 block mb-1">
+                    اسم الزائر / المهندس / الطبيب: <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="مثال: م. حسين مازن / قسم الأجهزة الطبية"
+                    value={bookName}
+                    onChange={(e) => setBookName(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-xs focus:ring-1 focus:ring-teal-500 focus:bg-white focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-xs font-medium text-slate-700 block mb-1">البريد الإلكتروني للزائر (اختياري):</label>
+                    <input
+                      type="email"
+                      placeholder="name@uomus.edu.iq"
+                      value={bookVisitorEmail}
+                      onChange={(e) => setBookVisitorEmail(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:ring-1 focus:ring-teal-500 focus:bg-white focus:outline-none"
+                      dir="ltr"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-700 block mb-1">القسم أو المنشأة الصحية:</label>
+                    <input
+                      type="text"
+                      placeholder="مثال: مستشفى المستقبل التعليمي"
+                      value={bookDept}
+                      onChange={(e) => setBookDept(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:ring-1 focus:ring-teal-500 focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-xs font-medium text-slate-700 block mb-1">محور الاستشارة:</label>
+                    <select
+                      value={bookPillar}
+                      onChange={(e) => setBookPillar(e.target.value as PillarId)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-2.5 text-xs focus:outline-none"
+                    >
+                      <option value="radiation">السلامة الإشعاعية</option>
+                      <option value="electrical">السلامة الكهربائية</option>
+                      <option value="green_hospital">المستشفيات الخضراء</option>
+                      <option value="healthcare_engineering">هندسة الأجهزة الطبية</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-slate-700 block mb-1">درجة الأولوية:</label>
+                    <select
+                      value={bookUrgency}
+                      onChange={(e) => setBookUrgency(e.target.value as any)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-2.5 text-xs focus:outline-none"
+                    >
+                      <option value="routine">روتينية (جدولة اعتيادية)</option>
+                      <option value="urgent">عاجلة (خلال 24 ساعة)</option>
+                      <option value="critical">حرجة / طارئة</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-xs font-medium text-slate-700 block mb-1">تاريخ الجلسة:</label>
+                    <input
+                      type="date"
+                      value={bookDate}
+                      onChange={(e) => setBookDate(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-2.5 text-xs focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-slate-700 block mb-1">الوقت المفضل:</label>
+                    <select
+                      value={bookTime}
+                      onChange={(e) => setBookTime(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-2.5 text-xs focus:outline-none"
+                    >
+                      <option value="09:00 صباحاً">09:00 صباحاً</option>
+                      <option value="11:00 صباحاً">11:00 صباحاً</option>
+                      <option value="01:00 ظهراً">01:00 ظهراً</option>
+                      <option value="03:00 مساءً">03:00 مساءً</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-slate-700 block mb-1">تفاصيل الاستفسار أو الجهاز الطبي:</label>
+                  <textarea
+                    rows={2}
+                    placeholder="اكتب اسم الجهاز أو التحدي الهندسي المطلوب تدقيقه..."
+                    value={bookNotes}
+                    onChange={(e) => setBookNotes(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:ring-1 focus:ring-teal-500 focus:bg-white focus:outline-none"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isAutoSending}
+                  className="w-full bg-teal-700 hover:bg-teal-800 active:scale-98 disabled:opacity-60 text-white font-medium text-xs py-3 px-4 rounded-xl shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <FileCheck className="w-4 h-4" />
+                  <span>
+                    {isAutoSending
+                      ? 'جاري تأكيد الحجز وإرسال الإشعار التلقائي...'
+                      : `تأكيد الحجز وإرسال الإشعار فوراً إلى ${TARGET_NOTIFICATION_EMAIL}`}
+                  </span>
+                </button>
+              </form>
+
+              {/* Recent Booked Consultations Quick List */}
+              {bookedConsultations.length > 0 && (
+                <div className="pt-3 border-t border-slate-100 space-y-2">
+                  <span className="text-[11px] font-semibold text-slate-500 block">
+                    آخر التذاكر المحجوزة وحالة الإشعار التلقائي:
+                  </span>
+                  <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+                    {bookedConsultations.slice(0, 3).map((tkt) => (
+                      <div
+                        key={tkt.id}
+                        className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 flex items-center justify-between gap-2 text-xs"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-semibold text-teal-800 text-[11px]">{tkt.id}</span>
+                            <span className="font-medium text-slate-800 truncate">{tkt.visitorName}</span>
+                          </div>
+                          <span className="text-[11px] text-slate-500 font-light block truncate">
+                            {tkt.topic} · {tkt.date}
+                          </span>
+                        </div>
+
+                        {tkt.emailNotificationSent ? (
+                          <span className="shrink-0 text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-1 rounded-lg flex items-center gap-1">
+                            <MailCheck className="w-3 h-3" />
+                            <span>تم إرسال الإشعار</span>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => onRequestEmailNotification(tkt)}
+                            className="shrink-0 text-[11px] font-medium bg-white hover:bg-teal-50 text-teal-700 border border-teal-200 px-2.5 py-1 rounded-lg flex items-center gap-1 cursor-pointer"
+                          >
+                            <Mail className="w-3 h-3" />
+                            <span>إرسال الإشعار</span>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {activeSideTool === 'calculators' && (
             <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-2xs space-y-5">
               {/* Calculator Subtabs */}
@@ -620,116 +868,6 @@ export const ConsultationTab: React.FC<ConsultationTabProps> = ({
                   </div>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Booking Subtool */}
-          {activeSideTool === 'booking' && (
-            <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-2xs space-y-4">
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-purple-600" />
-                  <span>حجز استشارة تخصصية مع مهندس أجهزة طبية</span>
-                </h3>
-                <p className="text-xs font-light text-slate-500 mt-1">
-                  جلسة ميدانية أو افتراضية للتدقيق السريري واشتراطات الأمان
-                </p>
-              </div>
-
-              {bookingSuccess && (
-                <div className="p-3.5 bg-teal-50 border border-teal-200 text-teal-900 rounded-2xl text-xs font-light flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-teal-700 shrink-0" />
-                  <span>تم تأكيد حجز الاستشارة وإصدار التذكرة الهندسية بنجاح!</span>
-                </div>
-              )}
-
-              <form onSubmit={handleBookingSubmit} className="space-y-3">
-                <div>
-                  <label className="text-xs font-medium text-slate-700 block mb-1">اسم المستفيد / الجهة:</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="مثال: د. مازن حسان / قسم الأشعة"
-                    value={bookName}
-                    onChange={(e) => setBookName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:ring-1 focus:ring-teal-500 focus:outline-none"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-xs font-medium text-slate-700 block mb-1">المحور:</label>
-                    <select
-                      value={bookPillar}
-                      onChange={(e) => setBookPillar(e.target.value as PillarId)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-2 text-xs focus:outline-none"
-                    >
-                      <option value="radiation">السلامة الإشعاعية</option>
-                      <option value="electrical">السلامة الكهربائية</option>
-                      <option value="green_hospital">المستشفيات الخضراء</option>
-                      <option value="healthcare_engineering">هندسة الأجهزة</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-medium text-slate-700 block mb-1">الأولوية:</label>
-                    <select
-                      value={bookUrgency}
-                      onChange={(e) => setBookUrgency(e.target.value as any)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-2 text-xs focus:outline-none"
-                    >
-                      <option value="routine">روتينية (أسبوع)</option>
-                      <option value="urgent">عاجلة (24 ساعة)</option>
-                      <option value="critical">حرجة / طارئة</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-xs font-medium text-slate-700 block mb-1">تاريخ الجلسة:</label>
-                    <input
-                      type="date"
-                      value={bookDate}
-                      onChange={(e) => setBookDate(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-2 text-xs focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-medium text-slate-700 block mb-1">الوقت:</label>
-                    <select
-                      value={bookTime}
-                      onChange={(e) => setBookTime(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-2 text-xs focus:outline-none"
-                    >
-                      <option value="09:00 صباحاً">09:00 صباحاً</option>
-                      <option value="11:00 صباحاً">11:00 صباحاً</option>
-                      <option value="01:00 ظهراً">01:00 ظهراً</option>
-                      <option value="03:00 مساءً">03:00 مساءً</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-slate-700 block mb-1">تفاصيل الاستفسار:</label>
-                  <textarea
-                    rows={2}
-                    placeholder="اكتب التحدي الهندسي أو الجهاز المطلوب تدقيقه..."
-                    value={bookNotes}
-                    onChange={(e) => setBookNotes(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:ring-1 focus:ring-teal-500 focus:outline-none"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-purple-700 hover:bg-purple-800 active:scale-98 text-white font-medium text-xs py-2.5 px-4 rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <FileCheck className="w-4 h-4" />
-                  <span>تأكيد الحجز وإصدار التذكرة</span>
-                </button>
-              </form>
             </div>
           )}
         </div>

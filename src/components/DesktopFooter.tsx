@@ -1,6 +1,7 @@
 import React from 'react';
-import { ShieldCheck, PhoneCall, Heart, Award, ArrowUp } from 'lucide-react';
+import { ShieldCheck, PhoneCall, GraduationCap, ArrowUp, Mail } from 'lucide-react';
 import { AppTab } from '../types';
+import { TARGET_NOTIFICATION_EMAIL } from '../services/googleWorkspaceAuth';
 
 interface DesktopFooterProps {
   onNavigateTab: (tab: AppTab) => void;
@@ -13,20 +14,29 @@ export const DesktopFooter: React.FC<DesktopFooterProps> = ({ onNavigateTab, onO
   };
 
   return (
-    <footer className="w-full bg-white border-t border-slate-200 mt-16 text-slate-600 text-right" dir="rtl">
+    <footer className="no-print w-full bg-white border-t border-slate-200 mt-16 text-slate-600 text-right" dir="rtl">
       <div className="max-w-7xl mx-auto px-6 py-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          {/* Col 1: Platform Branding & Mission */}
+          {/* Col 1: Al-Mustaqbal University & Platform Branding */}
           <div className="space-y-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-teal-800 text-white flex items-center justify-center shadow-xs">
-                <ShieldCheck className="w-4 h-4 text-teal-200" />
+              <div className="w-9 h-9 rounded-xl bg-teal-900 text-white flex items-center justify-center shadow-xs">
+                <GraduationCap className="w-5 h-5 text-amber-300" />
               </div>
-              <span className="text-sm font-semibold text-slate-900">سلامة واستدامة</span>
+              <div>
+                <span className="text-sm font-semibold text-slate-900 block">جامعة المستقبل</span>
+                <span className="text-[11px] font-light text-teal-700 block">
+                  الجامعة الأهلية الأولى في العراق
+                </span>
+              </div>
             </div>
             <p className="text-xs font-light text-slate-500 leading-relaxed">
-              المنصة التخصصية المعتمدة للتوعية بهندسة الرعاية الصحية والسلامة الإشعاعية والكهربائية للأجهزة الطبية واستراتيجيات المستشفيات الخضراء.
+              منصة التوعية بالاستدامة والسلامة المهنية الطبية — كلية التقنيات الهندسية · قسم هندسة تقنيات الأجهزة الطبية.
             </p>
+            <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-400">
+              <Mail className="w-3.5 h-3.5 text-teal-600" />
+              <span>{TARGET_NOTIFICATION_EMAIL}</span>
+            </div>
           </div>
 
           {/* Col 2: Four Core Pillars Links */}
@@ -56,13 +66,13 @@ export const DesktopFooter: React.FC<DesktopFooterProps> = ({ onNavigateTab, onO
             </ul>
           </div>
 
-          {/* Col 3: Rapid Tools & Resources */}
+          {/* Col 3: Rapid Tools & Official PDF Guides */}
           <div className="space-y-2.5">
-            <h4 className="text-xs font-semibold text-slate-900">الأدوات والحاسبات</h4>
+            <h4 className="text-xs font-semibold text-slate-900">الأدوات والأدلة الرسمية (PDF)</h4>
             <ul className="space-y-1.5 text-xs font-light text-slate-500">
               <li>
                 <button onClick={() => onNavigateTab('consultation')} className="hover:text-teal-700 transition-colors cursor-pointer">
-                  المستشار السريري والهندسي الفوري
+                  حجز استشارة وإشعار البريد (Gmail API)
                 </button>
               </li>
               <li>
@@ -77,7 +87,7 @@ export const DesktopFooter: React.FC<DesktopFooterProps> = ({ onNavigateTab, onO
               </li>
               <li>
                 <button onClick={() => onNavigateTab('guides')} className="hover:text-teal-700 transition-colors cursor-pointer">
-                  مكتبة أدلة الجيب القابلة للطباعة
+                  مكتبة الأدلة الاسترشادية لجامعة المستقبل (A4 PDF)
                 </button>
               </li>
             </ul>
@@ -101,8 +111,11 @@ export const DesktopFooter: React.FC<DesktopFooterProps> = ({ onNavigateTab, onO
 
         {/* Bottom Copyright and Standards Stamp */}
         <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-light text-slate-400">
-          <div>
-            © 2026 منصة التوعية بالاستدامة والسلامة المهنية الطبية. جميع المعايير مطابقة لأحدث إصدارات ICRP وIEC وWHO.
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-teal-600 shrink-0" />
+            <span>
+              © 2026 جامعة المستقبل (الجامعة الأهلية الأولى في العراق) — كلية التقنيات الهندسية / قسم هندسة تقنيات الأجهزة الطبية.
+            </span>
           </div>
 
           <button

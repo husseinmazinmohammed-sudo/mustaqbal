@@ -68,80 +68,81 @@ export const HomeTab: React.FC<HomeTabProps> = ({
 
   return (
     <div className="space-y-6 text-slate-700" dir="rtl">
-      {/* Hero Banner: Modern Clinical Executive Canvas */}
-      <div className="bg-gradient-to-l from-slate-900 via-teal-950 to-slate-900 text-white rounded-3xl p-8 shadow-sm relative overflow-hidden border border-slate-800">
-        <div className="absolute -left-16 -bottom-16 w-72 h-72 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute right-10 top-0 w-60 h-60 bg-emerald-400/10 rounded-full blur-2xl pointer-events-none"></div>
+      {/* Hero Banner: Gentle Pastel Clinical Canvas */}
+      <div className="bg-gradient-to-l from-teal-50/90 via-emerald-50/50 to-sky-50/90 text-slate-800 rounded-3xl p-8 shadow-2xs relative overflow-hidden border border-teal-200/80">
+        <div className="absolute -left-16 -bottom-16 w-72 h-72 bg-teal-300/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute right-10 top-0 w-60 h-60 bg-sky-300/15 rounded-full blur-2xl pointer-events-none"></div>
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="max-w-3xl space-y-3">
-            <div className="flex items-center gap-2.5 text-xs text-teal-300 font-light">
-              <span className="w-2 h-2 rounded-full bg-teal-400"></span>
-              <span>المنظومة الوطنية للتوعية بالاستدامة والسلامة المهنية الطبية</span>
-              <span className="text-slate-500">·</span>
-              <span className="bg-white/10 px-2.5 py-0.5 rounded-full text-[11px] text-teal-200">
-                إصدار سطح المكتب المعتمد 2026
+            <div className="flex flex-wrap items-center gap-2 text-xs text-teal-800 font-light">
+              <span className="w-2 h-2 rounded-full bg-teal-600"></span>
+              <span className="font-semibold text-teal-900">جامعة المستقبل — الجامعة الأهلية الأولى في العراق</span>
+              <span className="text-teal-400">·</span>
+              <span className="text-slate-600">كلية التقنيات الهندسية / قسم هندسة تقنيات الأجهزة الطبية</span>
+              <span className="bg-white/90 border border-teal-200 px-2.5 py-0.5 rounded-full text-[11px] text-teal-800 font-medium">
+                الإصدار الأكاديمي السريري 2026
               </span>
             </div>
 
-            <h1 className="text-2xl lg:text-3xl font-semibold leading-tight text-white">
+            <h1 className="text-2xl lg:text-3xl font-semibold leading-tight text-slate-900">
               {currentGreeting.title}
             </h1>
 
-            <p className="text-sm font-light text-slate-300 leading-relaxed max-w-2xl">
+            <p className="text-sm font-light text-slate-600 leading-relaxed max-w-2xl">
               {currentGreeting.subtitle}
             </p>
 
             <div className="pt-2 flex flex-wrap items-center gap-3">
               <button
                 onClick={() => onNavigateTab('consultation')}
-                className="bg-teal-600 hover:bg-teal-500 active:scale-98 text-white text-xs font-medium py-3 px-5 rounded-xl flex items-center gap-2 shadow-xs transition-all cursor-pointer"
+                className="bg-teal-700 hover:bg-teal-800 active:scale-98 text-white text-xs font-medium py-3 px-5 rounded-xl flex items-center gap-2 shadow-2xs transition-all cursor-pointer"
               >
                 <Sparkles className="w-4 h-4 text-teal-100" />
-                <span>استشارة تخصصية فورية</span>
+                <span>حجز استشارة فورية (إشعار تلقائي للبريد)</span>
                 <ArrowLeft className="w-3.5 h-3.5" />
               </button>
 
               <button
                 onClick={() => onNavigateTab('modules')}
-                className="bg-white/10 hover:bg-white/15 text-white text-xs font-light py-3 px-5 rounded-xl flex items-center gap-2 transition-colors border border-white/10 cursor-pointer"
+                className="bg-white hover:bg-teal-50/70 text-teal-900 text-xs font-medium py-3 px-5 rounded-xl flex items-center gap-2 transition-colors border border-teal-200/80 shadow-2xs cursor-pointer"
               >
                 <span>استعراض العروض التثقيفية</span>
               </button>
 
               <button
                 onClick={() => onNavigateTab('guides')}
-                className="bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-light py-3 px-5 rounded-xl flex items-center gap-2 transition-colors border border-white/5 cursor-pointer"
+                className="bg-white/80 hover:bg-white text-slate-700 text-xs font-light py-3 px-5 rounded-xl flex items-center gap-2 transition-colors border border-slate-200/80 cursor-pointer"
               >
-                <Download className="w-3.5 h-3.5 text-teal-300" />
-                <span>أدلة الجيب السريعة</span>
+                <Download className="w-3.5 h-3.5 text-teal-700" />
+                <span>الفورما الرسمية الموحدة (PDF)</span>
               </button>
             </div>
           </div>
 
           {/* Quick Metrics KPI Strip on Hero */}
           <div className="hidden lg:grid grid-cols-2 gap-3 shrink-0 w-80">
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 text-right">
-              <span className="text-xs text-slate-400 block font-light">المعايير المفعلة</span>
-              <span className="text-xl font-semibold text-teal-300 font-mono">4 محاور</span>
+            <div className="bg-white/90 backdrop-blur-md border border-teal-200/70 rounded-2xl p-4 text-right shadow-2xs">
+              <span className="text-xs text-slate-500 block font-light">المعايير المفعلة</span>
+              <span className="text-xl font-semibold text-teal-800 font-mono">4 محاور</span>
               <span className="text-[11px] text-slate-400 block mt-1">مطابقة لـ ICRP & IEC</span>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 text-right">
-              <span className="text-xs text-slate-400 block font-light">معدل خفض المخاطر</span>
-              <span className="text-xl font-semibold text-emerald-300 font-mono">98.4%</span>
+            <div className="bg-white/90 backdrop-blur-md border border-teal-200/70 rounded-2xl p-4 text-right shadow-2xs">
+              <span className="text-xs text-slate-500 block font-light">معدل خفض المخاطر</span>
+              <span className="text-xl font-semibold text-emerald-700 font-mono">98.4%</span>
               <span className="text-[11px] text-slate-400 block mt-1">بالتطبيق الصارم لـ PPM</span>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 text-right">
-              <span className="text-xs text-slate-400 block font-light">توفير النفايات</span>
-              <span className="text-xl font-semibold text-sky-300 font-mono">-40%</span>
+            <div className="bg-white/90 backdrop-blur-md border border-teal-200/70 rounded-2xl p-4 text-right shadow-2xs">
+              <span className="text-xs text-slate-500 block font-light">توفير النفايات</span>
+              <span className="text-xl font-semibold text-sky-700 font-mono">-40%</span>
               <span className="text-[11px] text-slate-400 block mt-1">بإدارة المستشفى الأخضر</span>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 text-right">
-              <span className="text-xs text-slate-400 block font-light">زمن الاستجابة للطوارئ</span>
-              <span className="text-xl font-semibold text-amber-300 font-mono">&lt; 15 دقيقة</span>
+            <div className="bg-white/90 backdrop-blur-md border border-teal-200/70 rounded-2xl p-4 text-right shadow-2xs">
+              <span className="text-xs text-slate-500 block font-light">زمن الاستجابة للطوارئ</span>
+              <span className="text-xl font-semibold text-amber-700 font-mono">&lt; 15 دقيقة</span>
               <span className="text-[11px] text-slate-400 block mt-1">للأجهزة الداعمة للحياة</span>
             </div>
           </div>
@@ -429,39 +430,39 @@ export const HomeTab: React.FC<HomeTabProps> = ({
             </div>
           </div>
 
-          {/* Featured Pocket Guide Box */}
-          <div className="bg-gradient-to-br from-teal-900 to-slate-900 text-white rounded-2xl p-5 space-y-3 relative overflow-hidden">
-            <div className="flex items-center justify-between text-teal-300 text-xs font-light">
+          {/* Featured Pocket Guide Box (Gentle Pastel Clinical Style) */}
+          <div className="bg-gradient-to-br from-teal-50 via-emerald-50/60 to-sky-50 text-slate-800 border border-teal-200/80 rounded-2xl p-5 space-y-3 relative overflow-hidden shadow-2xs">
+            <div className="flex items-center justify-between text-teal-800 text-xs font-medium">
               <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-teal-400" />
-                <span>كتيب الجيب الاسترشادي السريع</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-teal-700" />
+                <span>فورما رسمية موحدة للطباعة (A4 PDF)</span>
               </span>
-              <span className="text-[10px] font-mono bg-white/10 px-2 py-0.5 rounded-md">
-                BME-MGMT-04
+              <span className="text-[10px] font-mono bg-white text-teal-900 border border-teal-200 px-2 py-0.5 rounded-md">
+                AMU-BME-MGMT-04
               </span>
             </div>
 
             <div>
-              <h4 className="text-sm font-semibold text-white leading-tight">
-                أطلس هندسة الرعاية وإدارة الأجهزة
+              <h4 className="text-sm font-semibold text-slate-900 leading-tight">
+                أطلس هندسة الرعاية وإدارة الأجهزة الطبية
               </h4>
-              <p className="text-xs font-light text-slate-300 mt-1 leading-relaxed">
-                ملخص تنفيذي لبروتوكولات الصيانة الوقائية وفحص القبول الاستلامي مطابق لمعايير الاعتماد الدولي.
+              <p className="text-xs font-light text-slate-600 mt-1 leading-relaxed">
+                إصدار قسم هندسة تقنيات الأجهزة الطبية بجامعة المستقبل لبروتوكولات الصيانة الوقائية وفحص القبول الاستلامي.
               </p>
             </div>
 
             <div className="pt-2 flex items-center gap-2">
               <button
                 onClick={() => onOpenGuide('guide-clinical-eng')}
-                className="flex-1 bg-teal-600 hover:bg-teal-500 active:scale-98 text-white text-xs font-medium py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                className="flex-1 bg-teal-700 hover:bg-teal-800 active:scale-98 text-white text-xs font-medium py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs"
               >
                 <FileBadge className="w-3.5 h-3.5" />
-                <span>تصفح الدليل الكامل</span>
+                <span>تصفح وطباعة الفورما الموحدة</span>
               </button>
 
               <button
                 onClick={() => onNavigateTab('guides')}
-                className="bg-white/10 hover:bg-white/15 text-slate-200 text-xs font-light py-2 px-3 rounded-xl transition-colors cursor-pointer"
+                className="bg-white hover:bg-teal-50 text-teal-900 border border-teal-200 text-xs font-medium py-2.5 px-3 rounded-xl transition-colors cursor-pointer"
               >
                 <span>جميع الأدلة</span>
               </button>
